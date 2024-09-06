@@ -3,6 +3,7 @@ import numpy as np
 import tkinter as tk
 from tkinter import filedialog
 
+# Função para redimensionar imagem usando interpolação por vizinho mais próximo
 def vizinho_mais_proximo(image, scale_factor):
     original_height, original_width = image.shape[:2]
     new_height = int(original_height * scale_factor)
@@ -11,17 +12,17 @@ def vizinho_mais_proximo(image, scale_factor):
     # Criando uma nova imagem com as novas dimensões
     resized_image = np.zeros((new_height, new_width, image.shape[2]), dtype=image.dtype)
 
+    # Redimensionando imagem
     for i in range(new_height):
         for j in range(new_width):
             # Encontrando o pixel correspondente na imagem original
             original_x = int(i / scale_factor)
             original_y = int(j / scale_factor)
-
-            # Atribuindo o valor do pixel correspondente
             resized_image[i, j] = image[original_x, original_y]
 
     return resized_image
 
+# Função para redimensionar imagem usando interpolação bilinear
 def interpolacao_bilinear(image, scale_factor):
     original_height, original_width = image.shape[:2]
     new_height = int(original_height * scale_factor)
@@ -30,31 +31,29 @@ def interpolacao_bilinear(image, scale_factor):
     # Criando uma nova imagem com as novas dimensões
     resized_image = np.zeros((new_height, new_width, image.shape[2]), dtype=image.dtype)
 
+    # Redimensionando imagem
     for i in range(new_height):
         for j in range(new_width):
             # Coordenadas na imagem original
             x = i / scale_factor
             y = j / scale_factor
 
-            # Coordenadas dos pixels vizinhos
-            x1 = int(x)
-            y1 = int(y)
-            x2 = min(x1 + 1, original_height - 1)
-            y2 = min(y1 + 1, original_width - 1)
+            # Coordenadas dos quatro pixels vizinhos
+            x1, y1 = int(x), int(y)
+            x2, y2 = min(x1 + 1, original_height - 1), min(y1 + 1, original_width - 1)
 
             # Fatores de interpolação
-            r1 = x - x1
-            r2 = y - y1
+            r1, r2 = x - x1, y - y1
 
-            # Interpolação
+            # Calculando a cor interpolada
             for c in range(image.shape[2]):
-                interpolated_value = (
+                valor_interpolado = (
                     (1 - r1) * (1 - r2) * image[x1, y1, c] +
-                    (r1) * (1 - r2) * image[x2, y1, c] +
-                    (1 - r1) * (r2) * image[x1, y2, c] +
-                    (r1) * (r2) * image[x2, y2, c]
+                    r1 * (1 - r2) * image[x2, y1, c] +
+                    (1 - r1) * r2 * image[x1, y2, c] +
+                    r1 * r2 * image[x2, y2, c]
                 )
-                resized_image[i, j, c] = int(interpolated_value)
+                resized_image[i, j, c] = int(valor_interpolado)
 
     return resized_image
 
@@ -70,31 +69,32 @@ def main():
 
     # Carregar a imagem selecionada
     image = cv2.imread(image_path)
-
     if image is None:
-        print("Erro ao carregar a imagem. Verifique o caminho.")
+        print("Erro ao carregar a imagem.")
         return
 
-    print("Escolha o tipo de interpolação:")
-    print("1. Interpolação por Vizinho Mais Próximo")
-    print("2. Interpolação Bilinear")
+    print("Escolha o tipo de procedimento:")
+    print("1. Ampliação")
+    print("2. Redução")
     choice = int(input("Digite a opção desejada (1 ou 2): "))
 
-    scale_factor = float(input("Digite o fator de escala (Ex: 0.5 para redução, 2.0 para ampliação): "))
-
     if choice == 1:
-        scaled_image = vizinho_mais_proximo(image, scale_factor)
-        output_path = 'vizinho_mais_proximo.jpg'
+        scale_factor = 2.0
     elif choice == 2:
-        scaled_image = interpolacao_bilinear(image, scale_factor)
-        output_path = 'interpolacao_bilinear.jpg'
+        scale_factor = 0.5
     else:
         print("Opção inválida.")
         return
 
-    # Salvar a imagem resultante
-    cv2.imwrite(output_path, scaled_image)
-    print(f"A imagem foi salva como {output_path}")
+    print("Aplicando interpolação por Vizinho Mais Próximo...")
+    imagem_vizinho = vizinho_mais_proximo(image, scale_factor)
+    cv2.imwrite('vizinho_mais_proximo.jpg', imagem_vizinho)
+    print("Imagem com Vizinho Mais Próximo salva como 'vizinho_mais_proximo.jpg'")
+
+    print("Aplicando interpolação Bilinear...")
+    imagem_bilinear = interpolacao_bilinear(image, scale_factor)
+    cv2.imwrite('interpolacao_bilinear.jpg', imagem_bilinear)
+    print("Imagem com Interpolação Bilinear salva como 'interpolacao_bilinear.jpg'")
 
 if __name__ == "__main__":
     main()
